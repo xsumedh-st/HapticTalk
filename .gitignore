@@ -1,0 +1,7 @@
+haptictalk_env/
+haptictalk_env_new/
+__pycache__/
+*.pyc
+samples/
+*.zip
+.env
