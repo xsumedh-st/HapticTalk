@@ -1,7 +1,16 @@
+# virtualenvs
 haptictalk_env/
 haptictalk_env_new/
+venv/
+.venv/
+
+# python
 __pycache__/
 *.pyc
-samples/
-*.zip
+
+# secrets
 .env
+
+# tooling
+.claude/
+.vscode/

@@ -17,14 +17,11 @@ Check reachability without starting the webcam:
 
 import argparse
 import os
-import queue
 import socket
 import sys
-import threading
 import time
 
 import cv2
-
 from hands_config import make_hands
 
 UNOQ_IP = os.environ.get("HAPTICTALK_HOST", "10.171.220.95")
@@ -32,51 +29,6 @@ UNOQ_PORT = int(os.environ.get("HAPTICTALK_PORT", "5005"))
 
 RECONNECT_BASE_DELAY = 0.5   # seconds, doubles each attempt
 RECONNECT_MAX_DELAY = 10.0
-
-HAPTIC_HOST = "127.0.0.1"
-HAPTIC_PORT = 5099
-
-
-def start_haptic_channel(word_queue):
-    """Listen on localhost for words to relay as HAPTIC commands.
-
-    Returns the listening socket, or None if binding failed (the bridge
-    keeps running without the haptic command channel in that case).
-    """
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        server.bind((HAPTIC_HOST, HAPTIC_PORT))
-    except OSError as e:
-        print(f"[haptic] warning: could not bind {HAPTIC_HOST}:{HAPTIC_PORT} ({e}); "
-              f"haptic command channel disabled")
-        server.close()
-        return None
-    server.listen(5)
-
-    def handle_conn(conn):
-        try:
-            with conn.makefile("r") as f:
-                for line in f:
-                    word = line.strip()
-                    if word:
-                        word_queue.put(word.upper())
-        except OSError:
-            pass
-        finally:
-            conn.close()
-
-    def accept_loop():
-        while True:
-            try:
-                conn, _ = server.accept()
-            except OSError:
-                break
-            threading.Thread(target=handle_conn, args=(conn,), daemon=True).start()
-
-    threading.Thread(target=accept_loop, daemon=True).start()
-    print(f"[haptic] command channel on {HAPTIC_HOST}:{HAPTIC_PORT}")
-    return server
 
 
 def connect(host, port, timeout=10):
@@ -150,10 +102,6 @@ def main():
         sys.exit(1)
     print("connected")
 
-    sock_lock = threading.Lock()
-    word_queue = queue.Queue()
-    start_haptic_channel(word_queue)
-
     hands = make_hands()
     cap = cv2.VideoCapture(0)
 
@@ -186,19 +134,8 @@ def main():
         packet = ",".join([f"{v:.4f}" for v in all_values]) + "\n"
 
         if frame_count % 2 == 0:
-            words = []
-            while True:
-                try:
-                    words.append(word_queue.get_nowait())
-                except queue.Empty:
-                    break
-
             try:
-                with sock_lock:
-                    for word in words:
-                        sock.sendall(f"HAPTIC {word}\n".encode())
-                        print(f"[haptic] sent {word}")
-                    sock.sendall(packet.encode())
+                sock.sendall(packet.encode())
                 print(f"Left wrist X: {left_data[0]:.4f} | Right wrist X: {right_data[0]:.4f}")
             except OSError as e:
                 print(f"[net] send failed: {e}")
