@@ -17,7 +17,10 @@ os.makedirs("samples", exist_ok=True)
 
 
 SIGNS = [
-     "MEDICINE","THIRSTY","DEMONSTRATE"
+  "YES","NO","HELP",
+"MEDICINE","THIRSTY","DEMONSTRATE",
+     "PAIN","WATER","THANKYOU",
+     "GOODMORNING"
 ]
 
 WINDOW_FRAMES = 30
